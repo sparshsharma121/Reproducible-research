@@ -1,0 +1,99 @@
+---
+title: "PA-1"
+output: html_document
+date: '2022-07-19'
+---
+
+Setting default options por knitr
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Opening libraries needed
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+```
+
+
+### 1. Code for reading in the dataset and/or processing the data
+```{r}
+data_na<-read.csv2("C:/Users/spars/Downloads/repdata_data_activity/activity.csv", sep = ",")
+data <- na.omit(data_na)
+head(data)
+```
+
+### 2. Histogram of the total number of steps taken each day
+
+```{r}
+data_sum<-data %>%                                   # Specify data frame
+  group_by(date) %>%                             # Specify group indicator
+  summarise_at(vars(steps),                      # Specify column
+               list(total_steps = sum))                # Specify function
+ggplot(data_sum,aes(date,total_steps)) + 
+  geom_bar(stat="identity", fill= data_sum$total_steps ) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+### 3. Mean and median number of steps taken each day
+```{r}
+mean <- mean(data$steps)
+medi <- median(data$steps)
+```
+The Mean number of steps taken each day is `r mean`. 
+The Median number of steps taken each day is `r medi`.
+
+
+### 4. Time series plot of the average number of steps taken
+```{r}
+data_mean <- data %>%
+    group_by(date) %>%
+    summarize(steps_mean = mean(steps, na.rm=TRUE))  
+ggplot(data_mean, aes(date, steps_mean, group = 1)) +
+         geom_line() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+### 5. The 5-minute interval that, on average, contains the maximum number of steps
+```{r}
+mean_interval<- data %>%
+    group_by(interval) %>%
+    summarize(steps_mean = mean(steps, na.rm=TRUE))  
+maxmean_interval = mean_interval$interval [which.max(mean_interval$steps_mean)]
+```
+The 5-minute interval that, on average, contains the maximum number of steps is `r maxmean_interval`. 
+
+
+### 6. Code to describe and show a strategy for imputing missing data
+```{r}
+data_input <- data_na %>% 
+  group_by(interval) %>% 
+  mutate(steps = ifelse(is.na(steps), 
+                            mean(steps, na.rm = TRUE), 
+                            steps))
+head(data_input)
+```
+
+### 7. Histogram of the total number of steps taken each day after missing values are imputed
+```{r}
+data_inputDate <- data_input %>%
+    ungroup()%>%
+    group_by(date) %>%
+    summarize(steps_mean = mean(steps, na.rm=TRUE))
+ggplot(data_inputDate, aes(date, steps_mean, group = 1)) +
+         geom_line() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+### 8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r}
+data_input$dateType <-  ifelse(as.POSIXlt(data_input$date)$wday %in% c(0,6), 'weekend', 'weekday')
+ggplot(data_input, aes(interval, steps)) + 
+    geom_line() + 
+    facet_grid(dateType ~ .) +
+    xlab("5-minute interval") + 
+    ylab("avarage number of steps")
+```
+
+All of the R code needed to reproduce the results (numbers, plots, etc.) in the report
